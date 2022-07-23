@@ -8,7 +8,7 @@ unsigned int cpuid_getVendorString() {
 
 void outb(uint16_t port, uint8_t data) {
     asm volatile (
-        "out %1, %0"
+        "outb %1, %0"
         : : "a"(data), "Nd" (port)
     );
 }
@@ -20,7 +20,7 @@ void iowait(void) {
 uint8_t inb(uint16_t port) {
     uint8_t ret;
     asm volatile (
-        "in %0, %1"
+        "inb %0, %1"
         : "=a" (ret)
         : "Nd" (port)
     );

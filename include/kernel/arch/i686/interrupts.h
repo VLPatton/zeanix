@@ -14,7 +14,7 @@ typedef struct registers {
     uint32_t eip, cs, eflags, esp, ss;
 } registers_t; 
 
-typedef void (*isr_t)(registers_t*);
+typedef void (*isr_t)(const registers_t*);
 
 void int_registerHandler(uint8_t, isr_t);
 

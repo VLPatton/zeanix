@@ -6,6 +6,6 @@
 
 int kbd_init();    // NOTE: this keyboard IF uses USB Legacy Support for emulating PS/2,
                     // there should be much more done here for a full keyboard IF
-void kbd_callback(registers_t*);
+void kbd_callback(const registers_t*);
 
 #endif

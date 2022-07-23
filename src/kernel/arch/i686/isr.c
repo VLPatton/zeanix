@@ -1,4 +1,5 @@
 #include <arch/i686/interrupts.h>
+#include <arch/i686/CPUID.h>
 #include <stdio.h>
 #include <stdlib.h>
 

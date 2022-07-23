@@ -7,9 +7,6 @@ const uint16_t ps2_cmdRegister = 0x64;
 const uint8_t ps2_ack = 0xFA;
 
 int kbd_init() {
-    // Init local variable for detecting acknowledges from PS/2 controller
-    uint8_t ack;
-
     // Disable input until init is finished
     outb(ps2_cmdRegister, 0xA7);
     outb(ps2_cmdRegister, 0xAD);
@@ -36,6 +33,6 @@ int kbd_init() {
     return 0;
 }
 
-void kbd_callback(registers_t* args) {
+void kbd_callback(const registers_t*) {
     inb(ps2_dataPort);
 }

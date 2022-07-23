@@ -66,7 +66,7 @@ int printf(const char* restrict format, ...) {
             int d = va_arg(parameters, int);
             int original = d;
             int i = 1;
-            for (i; d / 10 != 0; i++) 
+            for (; d / 10 != 0; i++) 
                 d /= 10;
             char buf[i + 1];
             for (int j = 0; j < i; j++) {
@@ -84,7 +84,7 @@ int printf(const char* restrict format, ...) {
             uint32_t d = (uint32_t)va_arg(parameters, void*);
             uint32_t original = d;
             int i = 1;
-            for (i; d / 10 != 0; i++) 
+            for (; d / 10 != 0; i++) 
                 d /= 10;
             char buf[i + 1];
             for (int j = 0; j < i; j++) {
