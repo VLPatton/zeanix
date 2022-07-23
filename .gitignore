@@ -1,0 +1,8 @@
+*.o
+*.ko
+*.d
+*.iso
+*.log
+*.txt
+
+build/
