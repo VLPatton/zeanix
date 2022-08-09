@@ -51,7 +51,7 @@ make iso    # create build/ and use it to create bootable iso
 ### Running Qemu without debugging
 **It is important that you are in the root directory of the repo, otherwise these commands will not funtion properly.** Run the following commands in the root of the repo as a regular user:
 <pre>
-qemu-system-$(ARCH) -m 512 -serial file:CON -cdrom zeanix.iso
+qemu-system-$(ARCH) -m 512 -serial file:debug.log -cdrom zeanix.iso
 </pre>
 ### Debugging
 **It is important that you are in the root directory of the repo, otherwise these commands will not funtion properly.** Run the following commands as a regular user to create a bootable ISO with debug information:
@@ -60,9 +60,9 @@ make clean  # remove unwanted objects or pieces of build/
 make debug  # run GCC on all C files, but with "__K_DEBUG" defined and with debug symbols
             # it will create the iso automatically with GDB information
 </pre>
-To debug with Qemu and GDB, on i686, make sure you have Qemu and GDB installed (preferably the GDB from the previously built Binutils). You can then debug with the following commands (in two separate shell instances):
+To debug with Qemu and GDB, on i686, make sure you have Qemu and GDB installed (any GDB install will work, including from the package manager). You can then debug with the following commands (in two separate shell instances):
 <pre>
 qemu-system-i386 -s -S -no-shutdown -no-reboot -serial file:debug.log -m 512 -cdrom zeanix.iso # tty1
 gdb # tty2
 </pre>
-The options for Qemu will force it to wait for GDB, not reboot the guest upon triple fault, not close the instance upon shutdown, redirect GDB info to a log file (it will only be invalid encoding if there is an error), and provide Zeanix with 512MB of RAM, while booting from the iso file created by Make. If GDB gives an error about `$REPOROOT/.gdbinit` or something similar not being auto-loaded for security, you can either disable this security or copy the commands in the `.gdbinit` file and paste them into GDB. 
+The options for Qemu will force it to wait for GDB, not reboot the guest upon triple fault, not close the instance upon shutdown, redirect serial output of the OS into a file called "debug.log" (it will only be invalid encoding if there is an error), and provide Zeanix with 512MB of RAM, while booting from the iso file created by Make. If GDB gives an error about `$REPOROOT/.gdbinit` or something similar not being auto-loaded for security, you can either disable this security or copy the commands in the `.gdbinit` file and paste them into GDB. 
