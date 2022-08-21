@@ -1,13 +1,13 @@
 #include <tty.h>
 
-static const size_t _TTY_WIDTH = 80;                            // Maximum width of TTY
-static const size_t _TTY_HEIGHT = 25;                           // Maximum height of TTY
-static uint16_t* const _TTY_BUFFER_ADDR = (uint16_t*)0xB8000;   // Default buffer addr in i686
+const size_t _TTY_WIDTH = 80;                            // Maximum width of TTY
+const size_t _TTY_HEIGHT = 25;                           // Maximum height of TTY
+uint16_t* const _TTY_BUFFER_ADDR = (uint16_t*)0xB8000;   // Default buffer addr in i686
 
-static uint16_t* tty_textBuffer;    // Text buffer pointer with color attrib
-static size_t tty_currentRow;       // Current row to print on
-static size_t tty_currentCol;       // Current column to print on
-static uint8_t tty_color;           // Current set color (does not affect previously printed chars)
+uint16_t* tty_textBuffer;    // Text buffer pointer with color attrib
+size_t tty_currentRow;       // Current row to print on
+size_t tty_currentCol;       // Current column to print on
+uint8_t tty_color;           // Current set color (does not affect previously printed chars)
 
 // Init TTY
 void tty_init(void) {

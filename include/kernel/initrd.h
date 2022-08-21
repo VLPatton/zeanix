@@ -6,6 +6,7 @@
 
 #pragma pack(1)
 
+// Many of the "numeric" values in the header are encoded as octal into a string
 typedef struct initrd_tarFileHeader {
     char filename[100];
     char mode[8];

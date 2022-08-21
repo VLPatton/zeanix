@@ -94,6 +94,21 @@ int printf(const char* restrict format, ...) {
             strrev(buf);
             print(buf, i);
             written += i;
+        } else if (*format == 'x') {
+            format++;
+            uint32_t x = (uint32_t)va_arg(parameters, int);
+            uint32_t original = x;
+            int i = 1;
+            for (; x / 16 != 0; i++) 
+                x /= 16;
+            char buf[i + 1];
+            char template[17] = "0123456789ABCDEF";
+            for (int j = 0; j < i; j++) {
+                buf[j] = template[(original & (0x0F << (j * 4))) >> (j * 4)];
+            }
+            strrev(buf);
+            print(buf, i);
+            written += i;
         } else {
             format = format_begun_at;
             size_t len = strlen(format);

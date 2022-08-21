@@ -86,3 +86,16 @@ section .data
 global multiboot_ptr
 multiboot_ptr:
     dd 0
+
+; Next piece is for page allocation, and must be aligned on a 4kiB frame
+align 4096
+global pagetable
+pagetable:
+    dd pagetable_one
+    resd 1023   ; Reserve 1024 pointers (1024 x 4 = 4096) for the page directory
+
+global pagetable_one
+pagetable_one:
+    resd 1024
+
+align 16

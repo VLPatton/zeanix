@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define FILENAME_MAX (256)
+#define VFS_FILENAME_MAX (256)
 
 #pragma pack(1)
 // All structs below must be packed to single bytes

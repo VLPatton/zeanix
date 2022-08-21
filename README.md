@@ -5,15 +5,17 @@ Zeanix is currently in very early stages, and does not currently feature a MemMg
 * Functioning Kernel Library (libk)
 * Paging
 * Multiboot operation
-* Interrupt and Exception handling
+* Interrupt and Exception handling (PIC)
 ### Works In Progress
 The below features are being actively worked on:
 * Memory Manager (Bicheal)
+* Interrupt and Exception handling (APIC)
 * Virtual FileSystem (VFS) and initrd
 ### Next Steps
 The below features are going to move into WIP after the current WIPs are completed satisfactorily:
 * Standard C Library (libc, likely POSIX API compliant)
 * Execution of ELF files, along with dynamic linking
+* ACPI implementation
 * Ext2 FS support
 * UEFI and x86_64 support
 * Ext3/4 FS support

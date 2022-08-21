@@ -4,5 +4,6 @@
 *.iso
 *.log
 *.txt
+*.old
 
 build/

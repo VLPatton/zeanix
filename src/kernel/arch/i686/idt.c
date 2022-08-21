@@ -1,42 +1,43 @@
 #include <arch/i686/descriptortables.h>
 #include <string.h>
 #include <arch/i686/CPUID.h>
+#include <arch/i686/APIC.h>
 
-idt_entry_t idt_entries[256];
-idt_ptr_t   idt;
+idt_entry_t idt_entries[256];   // Entries pointed to by idtr
+idt_ptr_t   idt;                // IDT pointer struct, gets loaded into idtr
 
-extern void isr0 ();
-extern void isr1 ();
-extern void isr2 ();
-extern void isr3 ();
-extern void isr4 ();
-extern void isr5 ();
-extern void isr6 ();
-extern void isr7 ();
-extern void isr8 ();
-extern void isr9 ();
-extern void isr10();
-extern void isr11();
-extern void isr12();
-extern void isr13();
-extern void isr14();
-extern void isr15();
-extern void isr16();
-extern void isr17();
-extern void isr18();
-extern void isr19();
-extern void isr20();
-extern void isr21();
-extern void isr22();
-extern void isr23();
-extern void isr24();
-extern void isr25();
-extern void isr26();
-extern void isr27();
-extern void isr28();
-extern void isr29();
-extern void isr30();
-extern void isr31();
+extern void isr0 ();            // Except. #DE
+extern void isr1 ();            // Except. #DB
+extern void isr2 ();            // Intrpt. NMI
+extern void isr3 ();            // Except. #BP
+extern void isr4 ();            // Except. #OF
+extern void isr5 ();            // Except. #BR
+extern void isr6 ();            // Except. #UD
+extern void isr7 ();            // Except. #NM
+extern void isr8 ();            // Except. 
+extern void isr9 ();            // Except. 
+extern void isr10();            // Except. 
+extern void isr11();            // Except. 
+extern void isr12();            // Except. 
+extern void isr13();            // Except. 
+extern void isr14();            // Except. 
+extern void isr15();            // Except. 
+extern void isr16();            // Except. 
+extern void isr17();            // Except. 
+extern void isr18();            // Except. 
+extern void isr19();            // Except. 
+extern void isr20();            // Except. 
+extern void isr21();            // Except. 
+extern void isr22();            // Except. 
+extern void isr23();            // Except. 
+extern void isr24();            // Except. 
+extern void isr25();            // Except. 
+extern void isr26();            // Except. 
+extern void isr27();            // Except. 
+extern void isr28();            // Except. 
+extern void isr29();            // Except. 
+extern void isr30();            // Except. 
+extern void isr31();            // Except. 
 
 extern void irq0 ();
 extern void irq1 ();
@@ -69,22 +70,20 @@ void idt_setGate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags) {
 } 
 
 void idt_init() {
-    // Remap PICs
-    outb(0x20, 0x11);
-    outb(0xA0, 0x11);
-    outb(0x21, 0x20);
-    outb(0xA1, 0x28);
-    outb(0x21, 0x04);
-    outb(0xA1, 0x02);
-    outb(0x21, 0x01);
-    outb(0xA1, 0x01);
-    // Set PIC masks (0x00, for all available)
-    outb(0x21, 0xFD);
+    // Set PIC masks to disable all PIC interrupts (we are opting for APIC instead)
+    outb(0x21, 0xFF);
     outb(0xA1, 0xFF);
 
+    // Initialize the APIC automatically
+    apic_init();
+
+    // Set limit to sizeof each entry, times how many entries, minus one,
+    // and set base to the address of the array of entries
     idt.limit = sizeof(idt_entry_t) * 256 - 1;
     idt.base = (uint32_t)&idt_entries;
 
+    // Make sure we have control over the data we're giving to the IDTR and don't
+    // give it bogus info that doesn't exist b/c we didn't init properly
     memset(&idt_entries, 0, sizeof(idt_entry_t) * 256);
 
     // Set ISRs in the IDT
@@ -140,5 +139,6 @@ void idt_init() {
     idt_setGate(47, (uint32_t)irq15, 0x08, 0x8E);
     idt_setGate(0x69, (uint32_t)irq0x69, 0x08, 0x8E);
 
+    // Call an IDT flushing routine
     idt_flush(&idt);
 }

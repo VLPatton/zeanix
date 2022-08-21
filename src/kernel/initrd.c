@@ -5,9 +5,7 @@ initrd_tarFileHeader_t* initrd_headers[1024];
 uint32_t initrd_maxIndex;
 
 // Determine value based on octal string
-size_t otob(const char* in)
-{
-
+size_t otob(const char* in) {
     size_t size = 0;
     size_t j;
     size_t count = 1;
@@ -57,6 +55,7 @@ uint32_t initrd_getIFF(const char* name) {
     return initrd_maxIndex;
 }
 
+// Return the buffer of an associated file name - NULL if file not found
 void* initrd_getbuffer(const char* name) {
     uint32_t index = initrd_getIFF(name);
     if (*(*initrd_headers[index]).typeflag == '0' || *(*initrd_headers[index]).typeflag == '\0') {
