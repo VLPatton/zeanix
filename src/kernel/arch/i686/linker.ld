@@ -9,6 +9,8 @@ SECTIONS
 	/* Begin putting sections at 1 MiB, a conventional place for kernels to be
 	   loaded at by the bootloader. */
 	. = 1M;
+	KERNEL_BEGIN = . + 0xC0000000;
+	KERNEL_BEGIN_PHYS = .;
 
 	/* First put the multiboot header, as it is required to be put very early
 	   early in the image or the bootloader won't recognize the file format.
@@ -37,4 +39,8 @@ SECTIONS
 		*(COMMON)
 		*(.bss)
 	}
+
+	KERNEL_END = . + 0xC0000000;
+	KERNEL_END_PHYS = .;
+	KERNEL_SIZE = KERNEL_END - KERNEL_BEGIN;
 }

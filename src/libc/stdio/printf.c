@@ -94,7 +94,7 @@ int printf(const char* restrict format, ...) {
             strrev(buf);
             print(buf, i);
             written += i;
-        } else if (*format == 'x') {
+        } else if (*format == 'X') {
             format++;
             uint32_t x = (uint32_t)va_arg(parameters, int);
             uint32_t original = x;

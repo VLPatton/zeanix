@@ -87,14 +87,14 @@ uint32_t apic_read(uint32_t reg) {
 
 /* ACPI Section of CPU-related functions */
 
-mmap_section_t acpi_map;
+mmap_t acpi_map;
 
-mmap_section_t* acpi_getmem(void) {
-    mmap_section_t* map;
+mmap_t* acpi_getmem(void) {
+    mmap_t* map;
     const uint32_t map_len = mmap_getBufferLen() / 20;
     uint32_t i = 0;
     for (; i <= map_len; i++) {
-        map = (mmap_section_t*)(uint32_t)(mmap_getmap(i).base_addr);
+        map = (mmap_t*)(uint32_t)(mmap_getmap(i).addr);
     }
     if (i != map_len) {
         acpi_map = *map;
@@ -107,10 +107,10 @@ void acpi_init(void) {
 
 }
 
-acpi_rsdtHeader_t* acpi_getmadt(mmap_section_t mapp) {
+acpi_rsdtHeader_t* acpi_getmadt(mmap_t mapp) {
     if (mapp.type != 3)
         return (acpi_rsdtHeader_t*)0;
-    acpi_rsdtHeader_t* temp = (acpi_rsdtHeader_t*)(uint32_t)(mapp.base_addr & 0xFFFFFFFF);
+    acpi_rsdtHeader_t* temp = (acpi_rsdtHeader_t*)(uint32_t)(mapp.addr & 0xFFFFFFFF);
     for (int i = 0; memcmp((*temp).signature, "APIC", 4) != 0; temp += (*temp).length, i++) 
         if (i > 21)
             return (acpi_rsdtHeader_t*)0;

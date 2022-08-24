@@ -29,8 +29,8 @@ typedef struct madt_entryheader {
 
 #pragma pack(0)
 
-mmap_section_t* acpi_getmem(void);
+mmap_t* acpi_getmem(void);
 void acpi_init(void);
-acpi_rsdtHeader_t* acpi_getmadt(mmap_section_t);
+acpi_rsdtHeader_t* acpi_getmadt(mmap_t);
 
 #endif

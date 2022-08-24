@@ -1,146 +1,145 @@
-#include <arch/i686/paging.h>
-#include <liballoc.h>
-#include <serial.h>
-#include <assert.h>
-#include <string.h>
-
-#ifdef __K_DEBUG
+#include <stdbool.h>
 #include <stdio.h>
-#endif
+#include <stdlib.h>
 
-#define PAGE_SIZE 4096
+#include <arch/i686/paging.h>
+#include <string.h>
+#include <arch/i686/interrupts.h>
 
-// A bitmap of frames - used or free.
-uint32_t frames[1024 * 8];  // Could be up to 1024 x 1024 for a full page map of 4GiB
-uint32_t nframes;
+#define DIRECTORY_INDEX(x) ((x) >> 22)
+#define TABLE_INDEX(x) (((x) >> 12) & 0x3FF)
 
-// Static function to set a bit in the frames bitset
-static void set_frame(uint32_t frame_addr) {
-    uint32_t frame = frame_addr / 0x1000;
-    uint32_t idx = PAGING_IDX_FROM_BIT(frame);
-    uint32_t off = PAGING_OFF_FROM_BIT(frame);
-    frames[idx] |= (0x1 << off);
-}
+static directory_entry_t* current_page_directory;
+extern directory_entry_t kernel_directory[1024];
 
-// Static function to clear a bit in the frames bitset
-static void clear_frame(uint32_t frame_addr) {
-    uint32_t frame = frame_addr / 0x1000;
-    uint32_t idx = PAGING_IDX_FROM_BIT(frame);
-    uint32_t off = PAGING_OFF_FROM_BIT(frame);
-    frames[idx] &= ~(0x1 << off);
-}
-
-// Static function to test if a bit is set.
-static uint32_t test_frame(uint32_t frame_addr) {
-    uint32_t frame = frame_addr / 0x1000;
-    uint32_t idx = PAGING_IDX_FROM_BIT(frame);
-    uint32_t off = PAGING_OFF_FROM_BIT(frame);
-    return (frames[idx] & (0x1 << off));
-}
-
-// Static function to find the first free frame.
-static uint32_t first_frame() {
-    uint32_t i, j;
-    for (i = 0; i < PAGING_IDX_FROM_BIT(nframes); i++) {
-        if (frames[i] != 0xFFFFFFFF) {
-            // at least one bit is free here.
-            for (j = 0; j < 32; j++) {
-                uint32_t toTest = 0x1 << j;
-                if (!(frames[i] & toTest))
-                    return i * 4 * 8 + j;
-            }
-        }
-    }
-    return 0;
-} 
-
-// Function to allocate a frame.
-void alloc_frame(page_t* page, int kernel, int rw) {
-    if (page->frame != 0) {
-        return; // Frame was already allocated, return straight away.
-    } else {
-        uint32_t idx = first_frame();   // idx is now the index of the first free frame.
-        assert(idx != (uint32_t)-1);
-        set_frame(idx * 0x1000);        // Frame now marked
-        page->present = 1;              // Mark it as present.
-        page->rw = (rw) ? 1 : 0;        // Should the page be writeable?
-        page->user = (kernel) ? 0 : 1;  // Should the page be user-mode?
-        page->frame = idx;
-    }
-}
-
-void free_frame(page_t* page) {
-    if (page->present == 0) {
-        return;
-    } else {
-        clear_frame(page->frame << 12);
-        page->present = 0;
-        page->rw = 0;
-        page->user = 0;
-        page->frame = 0;
-    }
-}
-
-/* End Help Functions */
-
-extern page_table_t** pagetable;
-page_dir_t pagedir;
-
-void paging_enable() {
-    asm volatile (
-        "mov cr3, eax"
-        : : "a" (*pagedir.tablesPhysical)
-    );
-    asm volatile (
-        "mov eax, cr0\n"
-        "or  eax, 0x80000000\n"
-        "mov cr0, eax"
-    );
-}
+static void* heap_pointer = (void*) KERNEL_HEAP_VIRT;
 
 void paging_init() {
-    uint32_t end_page = 0x8000000;
+	int_registerHandler(14, &paging_fault_handler);
 
-    nframes = end_page / 0x1000;
-    memset(frames, 0, PAGING_IDX_FROM_BIT(nframes));
+	// Setup the recursive page directory entry
+	uintptr_t dir_phys = VIRT_TO_PHYS((uintptr_t) &kernel_directory);
+	kernel_directory[1023] = dir_phys | PAGE_PRESENT | PAGE_RW;
+	paging_invalidate_page(0xFFC00000);
 
-    memset(&pagedir, 0, sizeof(page_dir_t));
-    pagedir.tablesPhysical = &pagetable;
-
-    for (int i = 0x0; i < 0x40000; i += 0x1000) {
-        alloc_frame(paging_getpage(i), 1, 1);
-    }
-
-    paging_enable();
+	// Identity map only the 1st MiB
+	paging_map_pages(0x00000000, 0x00000000, 256, PAGE_RW);
 }
 
-page_t* paging_getpage(uint32_t addr) {
-    addr /= 0x1000;
+page_t* paging_get_page(uintptr_t virt, bool create) {
+	if (virt % 0x1000) {
+		printf("[VMM] Tried to access a page at an unaligned address!\n");
+		abort();
+	}
 
-    uint32_t table_idx = addr / 1024;
-    if (pagedir.tables[table_idx]) {
-        return &pagedir.tables[table_idx]->pages[addr % 1024];
-    } else {
-        uint32_t tmp = addr * 0x1000;
-        pagedir.tables[table_idx] = (page_table_t*)tmp;
-        memset(pagedir.tables[table_idx], 0, 0x1000);
-        (*pagedir.tablesPhysical)[table_idx] = (page_table_t*)(tmp | 0x7); // PRESENT, RW, US.
-        return &pagedir.tables[table_idx]->pages[addr % 1024];
-    }
+	uint32_t dir_index = DIRECTORY_INDEX(virt);
+	uint32_t table_index = TABLE_INDEX(virt);
+
+	directory_entry_t* dir = (directory_entry_t*) 0xFFFFF000;
+	page_t* table = ((uint32_t*) 0xFFC00000) + (0x400 * dir_index);
+
+	if (!(dir[dir_index] & PAGE_PRESENT) && create) {
+		page_t* new_table = (page_t*) pmm_alloc_page();
+		dir[dir_index] = (uint32_t) new_table | PAGE_PRESENT | PAGE_RW;
+		memset((void*) table, 0, 0x1000);
+	}
+
+	if (dir[dir_index] & PAGE_PRESENT) {
+		return &table[table_index];
+	}
+
+	return 0;
 }
 
-/* liballoc functions */
+// TODO: refuse 4 MiB pages
+void paging_map_page(uintptr_t virt, uintptr_t phys, uint32_t flags) {
+	page_t* page = paging_get_page(virt, true);
 
-void* liballoc_alloc(int pages) {
-    void* ptr = NULL;
+	if (*page & PAGE_PRESENT) {
+		printf("[VMM] Tried to map an already mapped virtual address 0x%X to 0x%X\n",
+			virt, phys);
+		printf("[VMM] Previous mapping: 0x%X to 0x%X\n", virt, *page & PAGE_FRAME);
+		abort();
+	}
 
-
-
-    return ptr;
+	*page = phys | PAGE_PRESENT | (flags & PAGE_FLAGS);
+	paging_invalidate_page(virt);
 }
 
-int liballoc_free(void* ptr, int pages) {
-    uint32_t frame = (uint32_t)ptr / 0x1000;
+void paging_unmap_page(uintptr_t virt) {
+	page_t* page = paging_get_page(virt, false);
 
-    return 0;
+	if (page) {
+		*page &= ~(PAGE_PRESENT);
+		paging_invalidate_page(virt);
+	}
+}
+
+void paging_map_pages(uintptr_t virt, uintptr_t phys, uint32_t num, uint32_t flags) {
+	for (uint32_t i = 0; i < num; i++) {
+		paging_map_page(virt, phys, flags);
+		phys += 0x1000;
+		virt += 0x1000;
+	}
+}
+
+void paging_unmap_pages(uintptr_t virt, uint32_t num) {
+	for (uint32_t i = 0; i < num; i++) {
+		paging_unmap_page(virt);
+		virt += 0x1000;
+	}
+}
+
+void paging_switch_directory(uintptr_t dir_phys) {
+	asm volatile("mov cr3, %0\n" :: "r"(dir_phys));
+	current_page_directory = (directory_entry_t*) PHYS_TO_VIRT(dir_phys);
+}
+
+void paging_invalidate_cache() {
+	asm volatile(
+		"mov eax, cr3\n"
+		"mov cr3, eax\n");
+}
+
+void paging_invalidate_page(uintptr_t virt) {
+	asm volatile ("invlpg %0" :: "m"(virt) : "memory");
+}
+
+void paging_fault_handler(const registers_t* regs) {
+	uint32_t err = regs->err_code;
+	uintptr_t cr2 = 0;
+	asm volatile("mov %0, cr2\n" : "=r"(cr2));
+
+	printf("\x1B[37;44m");
+	printf("The page at 0x%X %s present ", cr2, err & 0x01 ? "was" : "wasn't");
+	printf("when a process tried to %s it.\n", err & 0x02 ? "write to" : "read from");
+	printf("This process was in %s mode.\n", err & 0x04 ? "user" : "kernel");
+	printf("The reserved bits %s overwritten.\n", err & 0x08 ? "were" : "weren't");
+	printf("The fault %s during an instruction fetch.\n", err & 0x10 ? "occured" : "didn't occur");
+
+	abort();
+}
+
+void* paging_alloc_pages(uint32_t num, uint32_t flags) {
+	if ((uintptr_t) heap_pointer + num * 0x1000 >= 0xE0000000) {
+		return 0;
+	}
+
+	uintptr_t phys = (uintptr_t) pmm_alloc_pages(num);
+	paging_map_pages((uintptr_t) heap_pointer, phys, num, flags);
+	void* old_pointer = heap_pointer;
+	heap_pointer += num * 0x1000;
+
+	return old_pointer;
+}
+
+int paging_free_pages(uintptr_t virt, uint32_t num) {
+	page_t* page = paging_get_page(virt, false);
+
+	if (page) {
+		pmm_free_pages(*page & PAGE_FRAME, num);
+		return 0;
+	}
+
+	return 1;
 }

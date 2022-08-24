@@ -264,7 +264,7 @@ static struct boundary_tag* allocate_new_tag(unsigned int size)
             tag->split_right 	= NULL;
 
 
-    #ifdef DEBUG
+    #ifdef __K_DEBUG
     printf("Resource allocated %x of %d pages (%d bytes) for %d size.\n", tag, pages, pages * l_pageSize, size );
 
     l_allocated += pages * l_pageSize;

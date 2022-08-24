@@ -4,6 +4,8 @@ MEMINFO  equ  1 << 1            ; provide memory map
 FLAGS    equ  MBALIGN | MEMINFO ; this is the Multiboot 'flag' field
 MAGIC    equ  0x1BADB002        ; 'magic number' lets bootloader find the header
 CHECKSUM equ -(MAGIC + FLAGS)   ; checksum of above, to prove we are multiboot
+KERNEL_VIRTUAL_BASE equ 0xC0000000
+KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)
  
 ; Declare a multiboot header that marks the program as a kernel. These are magic
 ; values that are documented in the multiboot standard. The bootloader will
@@ -35,6 +37,17 @@ stack_top:
 section .text
 global _start:function (_start.end - _start)
 _start:
+    mov ecx, kernel_directory
+    mov cr3, ecx
+
+    mov ecx, cr4
+    or ecx, 0x10
+    mov cr4, ecx
+
+    mov ecx, cr0
+    or ecx, 0x80000000
+    mov cr0, ecx
+
     ; Once into 32-bit protected mode through GRUB, Interrupts and Paging are 
     ; disabled. The Zeanix kernel has full access to the CPU, but no access to
     ; standard libraries without providing them. To begin, Zeanix moves into
@@ -89,13 +102,11 @@ multiboot_ptr:
 
 ; Next piece is for page allocation, and must be aligned on a 4kiB frame
 align 4096
-global pagetable
-pagetable:
-    dd pagetable_one
-    resd 1023   ; Reserve 1024 pointers (1024 x 4 = 4096) for the page directory
-
-global pagetable_one
-pagetable_one:
-    resd 1024
+global kernel_directory
+kernel_directory:
+    dd 0x00000083
+    resd (KERNEL_PAGE_NUMBER - 1)
+    dd 0x00000083
+    resd (1024 - KERNEL_PAGE_NUMBER - 1)
 
 align 16
