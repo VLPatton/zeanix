@@ -1,24 +1,6 @@
 # Zeanix
-Zeanix is a \*nix OS designed from scratch with the idea of being Linux-binary compatible. In other words, its goal is to maintain compatibility with Linux-specific programs, but still offer other features. The end result is to be able to port many major Linux libraries (e.g, ncurses) and programs (e.g, GCC). Eventually, the kernel itself is aimed to be as portable as Linux as well, offering support from x86_64, to i686, to aarch64, to RISC-V, and more.
 ## Current State of Zeanix
-Zeanix is currently in very early stages, and does not currently feature a MemMgr (current WIP), a full C library (libc), or support for architectures beyond i686. Current implements are:
-* Functioning Kernel Library (libk)
-* Paging
-* Multiboot operation
-* Interrupt and Exception handling (PIC)
-### Works In Progress
-The below features are being actively worked on:
-* Memory Manager (Bicheal)
-* Interrupt and Exception handling (APIC)
-* Virtual FileSystem (VFS) and initrd
-### Next Steps
-The below features are going to move into WIP after the current WIPs are completed satisfactorily:
-* Standard C Library (libc, likely POSIX API compliant)
-* Execution of ELF files, along with dynamic linking
-* ACPI implementation
-* Ext2 FS support
-* UEFI and x86_64 support
-* Ext3/4 FS support
+THIS REPO HAS BEEN ARCHIVED. If you want a kernel from me, see [Seanix](https://github.com/VLPatton/seanix).
 ## Making a Bootable \*.iso File
 ### Requirements
 The following commands only work on a Linux, or potentially other \*nix system, and the following must be installed:
